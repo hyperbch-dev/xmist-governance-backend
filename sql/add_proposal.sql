@@ -5,7 +5,8 @@ INSERT OR ROLLBACK INTO proposals
 	content,
 	options,
 	snapshotBlock,
-	endBlock
+	endBlock,
+	histogram
 )
 VALUES
 (
@@ -14,5 +15,6 @@ VALUES
 	:content,
 	:options,
 	:snapshotBlock,
-	:endBlock
+	:endBlock,
+	:histogram
 )

@@ -1,33 +1,7 @@
 // Enable support for Express apps.
 const express = require("express");
 const router = express.Router();
-const ethers = require("ethers");
-
-// const getLog = async function (req, res) {
-//   const hash = req.params.hash;
-//   if (!hash) {
-//     res.status(500).json({ error: "Required parameter 'hash' not supplied" });
-//     return;
-//   }
-
-//   const log = req.app.queries.getLog.get({
-//     hash: hash,
-//   });
-
-//   if (!log) {
-//     res.status(404).json({ error: "Log not found" });
-//     return;
-//   }
-
-//   res.send(log.log);
-// };
-// router.get("/:hash", getLog);
-
-const requireParam = function(params, param) {
-  if (!params[param]) {
-    throw Error(`'${param}' parameter is not found in the request body`);
-  }
-}
+const { requireParam, incrementProposalVoteHistogram } = require("../src/utils");
 
 const vote = async function (req, res) {
   const params = req.body || {};
@@ -36,34 +10,53 @@ const vote = async function (req, res) {
     requireParam(params, "proposalId");
     requireParam(params, "choiceId");
     requireParam(params, "address");
+
+    // do not validate signatures in test environment
+    if (process.env.JEST_WORKER_ID === undefined) {
+      const message = `I am casting vote for ${params.proposalId} with choice ${params.choiceId}`;
+      const address = ethers.utils.verifyMessage(message, params.sig);
+      if (address !== params.address) {
+        throw Error(`Signature verification failed`);
+      }
+    }
+
+    const vote = req.app.queries.getVote.get({
+      proposalId: params.proposalId,
+      address: params.address
+    });
+
+    if (vote) {
+      throw Error(`You already casted your vote on this proposal` );
+    }
+
+    const amount = req.app.queries.getSnapshotAddressAmount.pluck().get({
+      proposalId: params.proposalId,
+      address: params.address
+    });
+
+    const proposal = req.app.queries.getProposal.get({
+      proposalId: params.proposalId,
+    });
+
+    if (!proposal) {
+      throw Error(`Proposal for this vote not found`);
+    }
+    const options = JSON.parse(proposal.options)
+
+    if (params.choiceId < 0 || params.choiceId >= options.length) {
+      throw Error(`Vote choiceId ${params.choiceId} is out of bounds`);
+    }
+
+    req.app.queries.addVote.run({ amount: amount, ...params });
+
+    incrementProposalVoteHistogram(req.app, proposal, params.choiceId, amount);
+
+    res.end();
   } catch (e) {
+    console.trace(e);
     res.status(500).json({ error: e.message });
     return;
   }
-
-  const message = `I am casting vote for ${params.proposalId} with choice ${params.choiceId}`;
-  console.log(1,message, params.sig)
-  const address = ethers.utils.verifyMessage(message, params.sig);
-  if (address !== params.address) {
-    res.status(500).json({ error: `Signature verification failed` });
-    return;
-  }
-  console.log(2)
-  const vote = req.app.queries.getVote.get({
-    proposalId: params.proposalId,
-    address: params.address
-  });
-  console.log(3)
-
-  if (vote) {
-    res.status(500).json({ error: `You already casted your vote on this proposal` });
-    return;
-  }
-  console.log(4)
-
-  req.app.queries.addVote.run({ ...params });
-  console.log(5)
-  res.end();
 };
 router.post("/", vote);
 

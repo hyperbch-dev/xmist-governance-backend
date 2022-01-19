@@ -58,14 +58,29 @@ module.exports = function (app) {
     addProposal: app.sql.prepare(
       Filesystem.readFileSync("sql/add_proposal.sql", "utf8").trim()
     ),
+    listProposals: app.sql.prepare(
+      Filesystem.readFileSync("sql/list_proposals.sql", "utf8").trim()
+    ),
     getProposal: app.sql.prepare(
       Filesystem.readFileSync("sql/get_proposal.sql", "utf8").trim()
+    ),
+    updateProposal: app.sql.prepare(
+      Filesystem.readFileSync("sql/update_proposal.sql", "utf8").trim()
+    ),
+    getProposalVotes: app.sql.prepare(
+      Filesystem.readFileSync("sql/get_proposal_votes.sql", "utf8").trim()
     ),
     addSnapshot: app.sql.prepare(
       Filesystem.readFileSync("sql/add_snapshot.sql", "utf8").trim()
     ),
     listSnapshot: app.sql.prepare(
       Filesystem.readFileSync("sql/list_snapshot.sql", "utf8").trim()
+    ),
+    countSnapshot: app.sql.prepare(
+      Filesystem.readFileSync("sql/count_snapshot.sql", "utf8").trim()
+    ),
+    getSnapshotAddressAmount: app.sql.prepare(
+      Filesystem.readFileSync("sql/get_snapshot_address_amount.sql", "utf8").trim()
     ),
   };
 

@@ -24,6 +24,8 @@ CREATE TABLE IF NOT EXISTS proposals (
 	options TEXT NOT NULL,
 	snapshotBlock INTEGER NOT NULL,
 	endBlock INTEGER NOT NULL,
+	voteCount INTEGER NOT NULL DEFAULT 0,
+	histogram TEXT NOT NULL,
 	timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
 	PRIMARY KEY (proposalId)
 );

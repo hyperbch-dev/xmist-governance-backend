@@ -5,16 +5,24 @@ const app = require("../server");
 
 describe("Test", () => {
   beforeAll(async function () {
-    fs.unlinkSync("database/database.db");
-    fs.unlinkSync("database/database.db-journal");
+    try {
+      fs.unlinkSync("database/database.db");
+      fs.unlinkSync("database/database.db-journal");
+    } catch {}
     await app.setup();
   });
   afterAll(async function () {
     app.server.close();
   });
 
-  const checkResponse = (resp) => {
+  const expectSuccess = (resp) => {
     if (resp.statusCode !== 200) {
+      throw Error(resp.body.error);
+    }
+  }
+
+  const expectFail = (resp) => {
+    if (resp.statusCode === 200) {
       throw Error(resp.body.error);
     }
   }
@@ -28,12 +36,12 @@ describe("Test", () => {
       "snapshotBlock": 1130002,
       "endBlock": 3130000
     });
-    checkResponse(response);
+    expectSuccess(response);
   });
 
   it("Should get a proposal", async () => {
     const response = await request(app).get("/proposal/0001").send();
-    checkResponse(response);
+    expectSuccess(response);
 
     const notFound = await request(app).get("/proposal").send();
     expect(notFound.statusCode).toBe(404);
@@ -44,12 +52,41 @@ describe("Test", () => {
   });
 
   it("Should make votes", async () => {
-    const response = await request(app).post("/vote").send({
+    const first = await request(app).post("/vote").send({
       sig: "asdf",
       proposalId: "0001",
       choiceId: 1,
-      address: "asdf",
+      address: "0xe870c1b1f92f5f3d8247340778e806aaf00e5fac",
     });
-    checkResponse(response);
+    expectSuccess(first);
+
+    const fail = await request(app).post("/vote").send({
+      sig: "asdf",
+      proposalId: "0001",
+      choiceId: 0,
+      address: "0xe870c1b1f92f5f3d8247340778e806aaf00e5fac",
+    });
+    expectFail(fail);
+
+    const second = await request(app).post("/vote").send({
+      sig: "asdf",
+      proposalId: "0001",
+      choiceId: 0,
+      address: "0x0e91f32c4d39048acf71ae19e974c06e3963bc2f",
+    });
+    expectSuccess(second);
+
+    const third = await request(app).post("/vote").send({
+      sig: "asdf",
+      proposalId: "0001",
+      choiceId: 1,
+      address: "0x5f95895597558c95961963858c240b6510a09ac3",
+    });
+    expectSuccess(third);
+
+    const proposals = await request(app).get("/proposal/all").send();
+    expectSuccess(proposals);
+    console.log(proposals.body);
+    expect(proposals.body.length).toBeGreaterThan(0);
   });
 });
