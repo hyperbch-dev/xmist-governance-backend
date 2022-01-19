@@ -1,3 +1,5 @@
+require("dotenv").config({ path: ".env" });
+
 module.exports = {
   //
   server: {
@@ -6,5 +8,9 @@ module.exports = {
 
     // Where to store the servers database file(s).
     database: "./database/database.db",
+
+    // Basic auth config
+    authUser: process.env.AUTH_USER,
+    authPassword: process.env.AUTH_PASSWORD
   },
 };

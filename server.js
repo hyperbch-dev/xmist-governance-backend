@@ -1,5 +1,6 @@
 // Include support for express applications.
 const express = require("express");
+const basicAuth = require('express-basic-auth')
 
 // Create an instance of an express application.
 const app = express();
@@ -37,13 +38,26 @@ const setup = async function () {
   // Configure express to prettify json.
   app.set("json spaces", 2);
 
+  // Configure basic auth
+  const users = { [app.config.server.authUser]: app.config.server.authPassword };
+  const postAuthMiddleware = (req, res, next) => {
+    if (req.method === "POST") {
+      basicAuth({ users: users })(req, res, next);
+      return;
+    }
+
+    next();
+  };
+  // app.use("/snapshot", postAuthMiddleware);
+  app.use("/proposal", postAuthMiddleware);
+
   // Create routes from separate files.
+  // app.post("/snapshot", (req,res) => {
+  //   res.end();
+  // });
+  app.use("/snapshot", require("./routes/snapshot.js"));
   app.use("/proposal", require("./routes/proposal.js"));
   app.use("/vote", require("./routes/vote.js"));
-  // app.use("/submit", require("./routes/submit.js"));
-  // app.use("/campaign", require("./routes/campaign.js"));
-  // app.use("/", require("./routes/home.js"));
-  // app.use("/create", urlencodedParser, require("./routes/create.js"));
 
   // Serve static files
   // app.use("/static", express.static("static"))

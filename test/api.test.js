@@ -1,3 +1,7 @@
+require("dotenv").config({ path: ".env" });
+const user = process.env.AUTH_USER;
+const password = process.env.AUTH_PASSWORD;
+
 const fs = require("fs");
 const request = require("supertest");
 
@@ -16,6 +20,9 @@ describe("Test", () => {
   });
 
   const expectSuccess = (resp) => {
+    if (resp.error) {
+      throw resp.error;
+    }
     if (resp.statusCode !== 200) {
       throw Error(resp.body.error);
     }
@@ -25,16 +32,59 @@ describe("Test", () => {
     if (resp.statusCode === 200) {
       throw Error(resp.body.error);
     }
+    if (!resp.error) {
+      throw Error("No error returned");
+    }
   }
 
+  it("Should hit basic auth", async () => {
+    const success = await request(app).post("/proposal").auth(user, password).send();
+    expect(success.statusCode).not.toBe(401);
+
+    const fail = await request(app).post("/proposal").auth('user', 'password').send();
+    expect(fail.statusCode).toBe(401);
+
+    const successGetAuth = await request(app).get("/proposal/123").auth('user', 'password').send();
+    expect(successGetAuth.statusCode).not.toBe(401);
+
+    const successGet = await request(app).get("/proposal/123").send();
+    expect(successGet.statusCode).not.toBe(401);
+  });
+
+  it("Should create a snapshot", async () => {
+    const response = await request(app).post("/snapshot").auth(user, password).send({
+      snapshotBlock: 1130002
+    });
+    expectSuccess(response);
+
+    const fail = await request(app).post("/snapshot").auth(user, password).send({
+      snapshotBlock: 1130002
+    });
+    expectFail(fail);
+    expect(fail.body.error).toBe("Snapshot for block 1130002 already exists");
+  });
+
+  it("Should get a snapshot", async () => {
+    const response = await request(app).get("/snapshot/1130002").send();
+    expectSuccess(response);
+    expect(response.body.length).toBeGreaterThan(0);
+
+    const notFound = await request(app).get("/snapshot").send();
+    expect(notFound.statusCode).toBe(404);
+
+    const notFoundId = await request(app).get("/snapshot/123").send();
+    expect(notFoundId.statusCode).toBe(404);
+    expect(notFoundId.body.error).toBe("snapshot not found");
+  });
+
   it("Should create a proposal", async () => {
-    const response = await request(app).post("/proposal").send({
-      "proposalId": "0001",
-      "title": "We cool?",
-      "content": "Are we?",
-      "options": ["YES", "NO"],
-      "snapshotBlock": 1130002,
-      "endBlock": 3130000
+    const response = await request(app).post("/proposal").auth(user, password).send({
+      proposalId: "0001",
+      title: "We cool?",
+      content: "Are we?",
+      options: ["YES", "NO"],
+      snapshotBlock: 1130002,
+      endBlock: 3130000
     });
     expectSuccess(response);
   });
