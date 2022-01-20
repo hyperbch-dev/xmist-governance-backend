@@ -43,37 +43,54 @@ const getProposal = async function (req, res) {
 };
 router.get("/:proposalId", getProposal);
 
+const createProposal = async function (params, app, ignoreExists) {
+  requireParam(params, "proposalId");
+
+  const proposal = app.queries.getProposal.get({
+    proposalId: params.proposalId,
+  });
+
+  if (proposal) {
+    if (ignoreExists) {
+      return;
+    } else {
+      throw Error(`Proposal with id ${params.proposalId} already exists`);
+    }
+  }
+
+  requireParam(params, "title");
+  requireParam(params, "content");
+  requireParam(params, "options");
+  requireParam(params, "snapshotBlock");
+  requireParam(params, "endBlock");
+
+  if (params.options.length < 2) {
+    throw Error("At least 2 options are required for a voting proposal");
+  }
+
+  // insert snapshot
+  if (!snapshotExists(app, params.snapshotBlock)) {
+    await generateSnapshot(app, params.snapshotBlock);
+  }
+
+  // serialize json fields
+  params.histogram = JSON.stringify(Array(params.options.length).fill(0));
+  params.options = JSON.stringify(params.options);
+
+  params.voteCount = 0;
+
+  // insert proposal
+  app.queries.addProposal.run({ ...params });
+}
+
 // create proposal
 const proposal = async function (req, res) {
   try {
     const params = req.body || {};
 
-    requireParam(params, "proposalId");
-    requireParam(params, "title");
-    requireParam(params, "content");
-    requireParam(params, "options");
-    requireParam(params, "snapshotBlock");
-    requireParam(params, "endBlock");
+    await createProposal(params, req.app, false);
 
-    if (params.options.length < 2) {
-      throw Error("At least 2 options are required for a voting proposal");
-    }
-
-    // insert snapshot
-    if (!snapshotExists(req.app, params.snapshotBlock)) {
-      await generateSnapshot(req.app, params.snapshotBlock);
-    }
-
-    // serialize json fields
-    params.histogram = JSON.stringify(Array(params.options.length).fill(0));
-    params.options = JSON.stringify(params.options);
-
-    params.voteCount = 0;
-
-    // insert proposal
-    req.app.queries.addProposal.run({ ...params });
-
-    res.end();
+    res.json({});
   } catch (e) {
     console.trace(e)
     res.status(500).json({ error: e.message });
@@ -82,5 +99,29 @@ const proposal = async function (req, res) {
 };
 // create proposal
 router.post("/", proposal);
+
+// sync proposals from github
+const syncProposals = async function (req, res) {
+  try {
+    const params = req.body || {};
+
+    requireParam(params, "proposals");
+
+    const proposals = Object.keys(params.proposals).map(key => ({proposalId: key, ...params.proposals[key]}));
+
+    for (const proposal of proposals) {
+      await createProposal(proposal, req.app, true);
+    };
+
+    res.json({});
+  } catch (e) {
+    console.trace(e);
+    res.status(500).json({ error: e.message });
+    return;
+  }
+};
+// create proposal
+router.post("/sync", syncProposals);
+
 
 module.exports = router;

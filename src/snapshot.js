@@ -12,10 +12,20 @@ const sep20TransferTopic = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628
 // smartbch rpc url
 const rpcUrl = "https://smartbch.fountainhead.cash/mainnet";
 
+// instantiate ethers provider
+const provider = new ethers.providers.JsonRpcProvider(rpcUrl, {
+  name: "smartbch",
+  chainId: 10000,
+});
+
 // BigNumber zero
 const zero = ethers.BigNumber.from(0);
 
-async function index(targetBlockNumber) {
+async function currentBlockNumber() {
+  return provider._getFastBlockNumber();
+}
+
+async function snapshot(targetBlockNumber) {
   // optional parameter to index only until this block number, otherwise until blockchain tip
   if (targetBlockNumber) {
     targetBlockNumber = parseInt(targetBlockNumber);
@@ -24,12 +34,7 @@ async function index(targetBlockNumber) {
     }
   }
 
-  // instantiate ethers provider
-  const provider = new ethers.providers.JsonRpcProvider(rpcUrl, {
-    name: "smartbch",
-    chainId: 10000,
-  });
-  const now = await provider._getFastBlockNumber();
+  const now = await currentBlockNumber();
   const scanBlockStop = targetBlockNumber || now;
 
   // block batching size 10000 is maximum
@@ -93,4 +98,4 @@ async function index(targetBlockNumber) {
   return balanceMap;
 }
 
-module.exports = index
+module.exports = { snapshot, currentBlockNumber }

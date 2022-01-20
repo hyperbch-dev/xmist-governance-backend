@@ -1,5 +1,5 @@
 const { ethers } = require("ethers");
-const snapshot = require("./snapshot")
+const { snapshot } = require("./snapshot")
 
 const requireParam = function(params, param) {
   if (params[param] === undefined) {

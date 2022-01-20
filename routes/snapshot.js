@@ -41,7 +41,7 @@ const postSnapshot = async function (req, res) {
 
     await generateSnapshot(req.app, params.snapshotBlock);
 
-    res.end();
+    res.json({});
   } catch (e) {
     console.trace(e);
     res.status(500).json({ error: e.message });

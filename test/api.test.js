@@ -17,6 +17,10 @@ describe("Test", () => {
   });
   afterAll(async function () {
     app.server.close();
+    try {
+      fs.unlinkSync("data/2000002.json");
+      fs.unlinkSync("data/2668859.json");
+    } catch {}
   });
 
   const expectSuccess = (resp) => {
@@ -53,19 +57,19 @@ describe("Test", () => {
 
   it("Should create a snapshot", async () => {
     const response = await request(app).post("/snapshot").auth(user, password).send({
-      snapshotBlock: 1130002
+      snapshotBlock: 2000002
     });
     expectSuccess(response);
 
     const fail = await request(app).post("/snapshot").auth(user, password).send({
-      snapshotBlock: 1130002
+      snapshotBlock: 2000002
     });
     expectFail(fail);
-    expect(fail.body.error).toBe("Snapshot for block 1130002 already exists");
+    expect(fail.body.error).toBe("Snapshot for block 2000002 already exists");
   });
 
   it("Should get a snapshot", async () => {
-    const response = await request(app).get("/snapshot/1130002").send();
+    const response = await request(app).get("/snapshot/2000002").send();
     expectSuccess(response);
     expect(response.body.length).toBeGreaterThan(0);
 
@@ -83,10 +87,21 @@ describe("Test", () => {
       title: "We cool?",
       content: "Are we?",
       options: ["YES", "NO"],
-      snapshotBlock: 1130002,
+      snapshotBlock: 2000002,
       endBlock: 3130000
     });
     expectSuccess(response);
+
+    const fail = await request(app).post("/proposal").auth(user, password).send({
+      proposalId: "0001",
+      title: "We cool?",
+      content: "Are we?",
+      options: ["YES", "NO"],
+      snapshotBlock: 2000002,
+      endBlock: 3130000
+    });
+    expectFail(fail);
+    expect(fail.body.error).toContain("already exists");
   });
 
   it("Should get a proposal", async () => {
@@ -102,11 +117,20 @@ describe("Test", () => {
   });
 
   it("Should make votes", async () => {
+    const noBalance = await request(app).post("/vote").send({
+      sig: "asdf",
+      proposalId: "0001",
+      choiceId: 0,
+      address: "0xe870c1b1f92f5f3d8247340778e806aaf00e5fac",
+    });
+    expectFail(noBalance);
+    expect(noBalance.body.error).toContain("You do not have any xMIST available at block number");
+
     const first = await request(app).post("/vote").send({
       sig: "asdf",
       proposalId: "0001",
-      choiceId: 1,
-      address: "0xe870c1b1f92f5f3d8247340778e806aaf00e5fac",
+      choiceId: 0,
+      address: "0x308be429641aab24175b2bafbc519350e2d4183d",
     });
     expectSuccess(first);
 
@@ -114,7 +138,7 @@ describe("Test", () => {
       sig: "asdf",
       proposalId: "0001",
       choiceId: 0,
-      address: "0xe870c1b1f92f5f3d8247340778e806aaf00e5fac",
+      address: "0x308be429641aab24175b2bafbc519350e2d4183d",
     });
     expectFail(fail);
 
@@ -122,7 +146,7 @@ describe("Test", () => {
       sig: "asdf",
       proposalId: "0001",
       choiceId: 0,
-      address: "0x0e91f32c4d39048acf71ae19e974c06e3963bc2f",
+      address: "0x08a39ae0b0da06fe824a65fa0a73c3126a82a0ba",
     });
     expectSuccess(second);
 
@@ -130,7 +154,7 @@ describe("Test", () => {
       sig: "asdf",
       proposalId: "0001",
       choiceId: 1,
-      address: "0x5f95895597558c95961963858c240b6510a09ac3",
+      address: "0x27a69ffba1e939ddcfecc8c7e0f967b872bac65c",
     });
     expectSuccess(third);
 
@@ -138,5 +162,36 @@ describe("Test", () => {
     expectSuccess(proposals);
     console.log(proposals.body);
     expect(proposals.body.length).toBeGreaterThan(0);
+  });
+
+
+  it("Should sync proposals from github", async () => {
+    const githubProposals = {
+      "timestamp": "2022-01-18T22:57:14.233Z",
+      "version": {
+        "major": 0,
+        "minor": 0,
+        "patch": 1
+      },
+      "proposals": {
+        "6594629f0911640a5cccd9ffef2845817f007c30932bb5fc7f19cc8b4eb4751b": {
+          "title": "Test Proposal #1",
+          "content": "This is the content of the proposal",
+          "strategy": "single-choice",
+          "options": [
+            "YES",
+            "NO"
+          ],
+          "snapshotBlock": "2668859",
+          "endBlock": "3668859"
+        }
+      }
+    };
+
+    const response = await request(app).post("/proposal/sync").auth(user, password).send(githubProposals);
+    expectSuccess(response);
+
+    const resyncSuccess = await request(app).post("/proposal/sync").auth(user, password).send(githubProposals);
+    expectSuccess(resyncSuccess);
   });
 });
