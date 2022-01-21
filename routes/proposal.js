@@ -35,6 +35,14 @@ const getProposal = async function (req, res) {
       return;
     }
 
+    const votes = req.app.queries.getProposalVotes.all({
+      proposalId: params.proposalId,
+    });
+
+    proposal.options = JSON.parse(proposal.options);
+    proposal.histogram = JSON.parse(proposal.histogram);
+    proposal.votes = votes;
+
     res.send(proposal);
   } catch (e) {
     res.status(500).json({ error: e.message });
@@ -74,7 +82,7 @@ const createProposal = async function (params, app, ignoreExists) {
   }
 
   // serialize json fields
-  params.histogram = JSON.stringify(Array(params.options.length).fill(0));
+  params.histogram = JSON.stringify(Array(params.options.length).fill("0"));
   params.options = JSON.stringify(params.options);
 
   params.voteCount = 0;
