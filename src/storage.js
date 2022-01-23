@@ -82,6 +82,9 @@ module.exports = function (app) {
     getSnapshotAddressAmount: app.sql.prepare(
       Filesystem.readFileSync("sql/get_snapshot_address_amount.sql", "utf8").trim()
     ),
+    listSnapshotAddressAmount: app.sql.prepare(
+      Filesystem.readFileSync("sql/list_snapshot_address_amount.sql", "utf8").trim()
+    ),
   };
 
   //

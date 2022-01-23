@@ -6,7 +6,7 @@
   "scripts": {
     "lint": "eslint .",
     "prettier": "npx prettier@2.0.5 '**/*.js' --write",
-    "test": "npx jest --detectOpenHandles --runInBand --forceExit",
+    "test": "DEBUG='logger:*' npx jest --detectOpenHandles --runInBand --forceExit",
     "debug": "DEBUG='logger:*' node --use-strict index.js",
     "verbose": "DEBUG='logger:*, -logger:object' node --use-strict index.js",
     "start": "npx webpack && DEBUG='logger:status, logger:server' node --use-strict index.js",

@@ -1,8 +1,7 @@
-SELECT snapshots.amount
+SELECT snapshots.amount, proposals.proposalId
 FROM proposals
 LEFT JOIN snapshots USING (snapshotBlock)
-WHERE proposals.proposalId = :proposalId
-AND snapshots.address = LOWER(:address)
+WHERE snapshots.address = LOWER(:address)
 AND snapshots.address NOT IN (
 	SELECT LOWER(votes.address)
 	FROM votes

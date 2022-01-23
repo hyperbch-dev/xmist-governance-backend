@@ -7,9 +7,21 @@ const { snapshotExists, generateSnapshot, requireParam } = require("../src/utils
 const getAllProposals = async function (req, res) {
   try {
     const proposals = req.app.queries.listProposals.all();
+
+    // if address query is passed to request, also return the address' voting power
+    const address = req.query.address;
+    let amounts = [];
+    if (address) {
+      amounts = req.app.queries.listSnapshotAddressAmount.all({
+        address: address.toLowerCase()
+      }) || [];
+    }
+
     proposals.forEach(val => {
       val.options = JSON.parse(val.options);
       val.histogram = JSON.parse(val.histogram);
+
+      val.userVotingPower = amounts.filter(amount => val.proposalId === amount.proposalId)[0]?.amount || "0";
     });
 
     res.send(proposals);
@@ -42,6 +54,18 @@ const getProposal = async function (req, res) {
     proposal.options = JSON.parse(proposal.options);
     proposal.histogram = JSON.parse(proposal.histogram);
     proposal.votes = votes;
+    proposal.userVotingPower = "0";
+
+    // if address param is passed to request, also return the address' voting power
+    const address = req.query.address;
+    if (address) {
+      const amount = req.app.queries.getSnapshotAddressAmount.pluck().get({
+        proposalId: params.proposalId,
+        address: address.toLowerCase()
+      });
+
+      proposal.userVotingPower = amount || "0";
+    }
 
     res.send(proposal);
   } catch (e) {
@@ -100,7 +124,7 @@ const proposal = async function (req, res) {
 
     res.json({});
   } catch (e) {
-    console.trace(e)
+    // console.trace(e)
     res.status(500).json({ error: e.message });
     return;
   }
@@ -123,7 +147,7 @@ const syncProposals = async function (req, res) {
 
     res.json({});
   } catch (e) {
-    console.trace(e);
+    // console.trace(e);
     res.status(500).json({ error: e.message });
     return;
   }

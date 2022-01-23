@@ -20,7 +20,7 @@ const getSnapshot = async function (req, res) {
 
     res.send(snapshot);
   } catch (e) {
-    console.trace(e);
+    // console.trace(e);
     res.status(500).json({ error: e.message });
     return;
   }
@@ -43,7 +43,7 @@ const postSnapshot = async function (req, res) {
 
     res.json({});
   } catch (e) {
-    console.trace(e);
+    // console.trace(e);
     res.status(500).json({ error: e.message });
     return;
   }

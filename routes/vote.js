@@ -46,7 +46,7 @@ const vote = async function (req, res) {
 
     const amount = req.app.queries.getSnapshotAddressAmount.pluck().get({
       proposalId: params.proposalId,
-      address: params.address.toLowerCase()
+      address: params.address
     });
 
     if (!amount) {
@@ -65,7 +65,7 @@ const vote = async function (req, res) {
 
     res.json({});
   } catch (e) {
-    console.trace(e);
+    // console.trace(e);
     res.status(500).json({ error: e.message });
     return;
   }

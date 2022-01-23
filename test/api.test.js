@@ -160,10 +160,8 @@ describe("Test", () => {
 
     const proposals = await request(app).get("/proposal/all").send();
     expectSuccess(proposals);
-    console.log(proposals.body);
     expect(proposals.body.length).toBeGreaterThan(0);
   });
-
 
   it("Should sync proposals from github", async () => {
     const githubProposals = {
@@ -176,7 +174,7 @@ describe("Test", () => {
       "proposals": {
         "6594629f0911640a5cccd9ffef2845817f007c30932bb5fc7f19cc8b4eb4751b": {
           "title": "Test Proposal #1",
-          "content": "This is the content of the proposal",
+          "content": "This is the **content** of the __proposal__",
           "strategy": "single-choice",
           "options": [
             "YES",
